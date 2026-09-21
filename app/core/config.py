@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     # Database (Supabase - async PostgreSQL)
     DB_URL: PostgresDsn 
 
+    # Test database (local PostgreSQL, used only by the test suite)
+    TEST_DB_URL: PostgresDsn | None = None
+
     # Authentication
     JWT_SECRET: str = Field(min_length=32)
     # Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
