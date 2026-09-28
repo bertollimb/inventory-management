@@ -1,4 +1,6 @@
 """Business logic for Product."""
+from decimal import Decimal
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -71,3 +73,10 @@ async def list_low_stock_products(db: AsyncSession) -> list[Product]:
         .order_by(Product.name)
     )
     return list(result.scalars().all())
+
+
+async def get_total_stock_value(db: AsyncSession) -> Decimal:
+    result = await db.execute(
+        select(func.coalesce(func.sum(Product.current_stock * Product.unit_price), 0))
+    )
+    return result.scalar_one()
