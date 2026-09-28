@@ -35,7 +35,7 @@ async def create_product(db: AsyncSession, data: ProductCreate) -> Product:
 
 
 async def get_product(db: AsyncSession, product_id: int) -> Product:
-    product = await db.get(Product, product_id)
+    product = await db.get(Product, product_id, populate_existing=True)
     if product is None:
         raise NotFoundError(f"Product with id {product_id} not found.")
     return product
