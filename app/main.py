@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.exceptions import (
+    DuplicateCategoryError,
     DuplicateSKUError,
     InsufficientStockError,
     InvalidCredentialsError,
@@ -37,6 +38,7 @@ app.add_middleware(
 EXCEPTION_STATUS: dict[type[Exception], int] = {
     NotFoundError: 404,
     DuplicateSKUError: 409,
+    DuplicateCategoryError: 409,
     InsufficientStockError: 409,
     InvalidCredentialsError: 401,
     InvalidTokenError: 401,

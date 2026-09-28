@@ -21,6 +21,11 @@ class DuplicateSKUError(Exception):
     pass
 
 
+class DuplicateCategoryError(Exception):
+    """Raised when creating or renaming a category to a name that already exists."""
+    pass
+
+
 class InvalidCredentialsError(Exception):
     """Raised when login email/password do not match a valid user."""
     pass

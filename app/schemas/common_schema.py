@@ -14,7 +14,13 @@ class PaginationParams(BaseModel):
 
 class DateRangeFilter(BaseModel):
     start_date: datetime | None = None
-    end_date: datetime | None = None
+    end_date: datetime | None = Field(
+        default=None,
+        description=(
+            "Inclusive upper bound. To include an entire calendar day, "
+            "pass its end-of-day time (e.g. 23:59:59), not just the date."
+        ),
+    )
 
 
 class PaginatedResponse(BaseModel, Generic[T]):
