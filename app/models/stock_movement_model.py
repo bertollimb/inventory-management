@@ -8,7 +8,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Index, func
+from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -53,4 +53,4 @@ class StockMovement(Base):
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     user: Mapped["User"] = relationship()
 
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
