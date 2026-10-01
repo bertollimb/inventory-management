@@ -4,9 +4,10 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import DuplicateSKUError, NotFoundError
+from app.core.exceptions import DuplicateSKUError, NotFoundError, ProductInUseError
 from app.models.category_model import Category
 from app.models.product_model import Product
+from app.models.stock_movement_model import StockMovement
 from app.schemas.common_schema import PaginationParams
 from app.schemas.product_schema import ProductCreate, ProductUpdate
 
@@ -64,6 +65,21 @@ async def update_product(db: AsyncSession, product_id: int, data: ProductUpdate)
     await db.commit()
     await db.refresh(product)
     return product
+
+
+async def delete_product(db: AsyncSession, product_id: int) -> None:
+    product = await get_product(db, product_id)
+
+    result = await db.execute(
+        select(StockMovement).where(StockMovement.product_id == product_id).limit(1)
+    )
+    if result.scalar_one_or_none() is not None:
+        raise ProductInUseError(
+            f"Product with id {product_id} has stock movements and cannot be deleted."
+        )
+
+    await db.delete(product)
+    await db.commit()
 
 
 async def list_low_stock_products(db: AsyncSession) -> list[Product]:

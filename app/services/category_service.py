@@ -2,8 +2,9 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import DuplicateCategoryError, NotFoundError
+from app.core.exceptions import CategoryInUseError, DuplicateCategoryError, NotFoundError
 from app.models.category_model import Category
+from app.models.product_model import Product
 from app.schemas.category_schema import CategoryCreate, CategoryUpdate
 
 
@@ -51,3 +52,16 @@ async def update_category(db: AsyncSession, category_id: int, data: CategoryUpda
     await db.commit()
     await db.refresh(category)
     return category
+
+
+async def delete_category(db: AsyncSession, category_id: int) -> None:
+    category = await get_category(db, category_id)
+
+    result = await db.execute(select(Product).where(Product.category_id == category_id).limit(1))
+    if result.scalar_one_or_none() is not None:
+        raise CategoryInUseError(
+            f"Category with id {category_id} has products linked to it and cannot be deleted."
+        )
+
+    await db.delete(category)
+    await db.commit()

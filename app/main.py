@@ -9,12 +9,14 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.exceptions import (
+    CategoryInUseError,
     DuplicateCategoryError,
     DuplicateSKUError,
     InsufficientStockError,
     InvalidCredentialsError,
     InvalidTokenError,
     NotFoundError,
+    ProductInUseError,
 )
 from app.routers import (
     auth_router,
@@ -40,6 +42,8 @@ EXCEPTION_STATUS: dict[type[Exception], int] = {
     DuplicateSKUError: 409,
     DuplicateCategoryError: 409,
     InsufficientStockError: 409,
+    CategoryInUseError: 409,
+    ProductInUseError: 409,
     InvalidCredentialsError: 401,
     InvalidTokenError: 401,
 }

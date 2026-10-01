@@ -69,3 +69,26 @@ async def test_update_product(client: AsyncClient, test_product: Product):
 async def test_products_require_authentication(unauthenticated_client: AsyncClient):
     response = await unauthenticated_client.get("/products")
     assert response.status_code == 401
+
+
+async def test_delete_product_removes_it(client: AsyncClient, test_product: Product):
+    response = await client.delete(f"/products/{test_product.id}")
+    assert response.status_code == 204
+
+    get_response = await client.get(f"/products/{test_product.id}")
+    assert get_response.status_code == 404
+
+
+async def test_delete_product_with_movements_returns_409(client: AsyncClient, test_product: Product):
+    await client.post(
+        "/movements",
+        json={"product_id": test_product.id, "movement_type": "IN", "quantity": 10, "reason": "PURCHASE"},
+    )
+
+    response = await client.delete(f"/products/{test_product.id}")
+    assert response.status_code == 409
+
+
+async def test_delete_nonexistent_product_returns_404(client: AsyncClient):
+    response = await client.delete("/products/9999")
+    assert response.status_code == 404
