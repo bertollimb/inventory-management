@@ -40,7 +40,7 @@ Only one person (the salon owner) uses this system — but a single user can sti
 - **Alembic** — database migrations
 - **Pydantic v2** — request/response validation
 - **JWT** authentication (access + refresh tokens)
-- **pytest** — 28 automated tests, including a real concurrency test using `asyncio.gather`
+- **pytest** — 34 automated tests, including a real concurrency test using `asyncio.gather`
 - **Docker** — containerized deployment
 - Deployed on **Render**, database on **Supabase**
 
@@ -93,7 +93,8 @@ inventory-management/
 ├── alembic/
 │   ├── versions/
 │   │   ├── 8e5bed2a75f7_create_initial_tables.py
-│   │   └── a50d2df2c3e2_add_timezone_to_datetime_columns.py
+│   │   ├── a50d2df2c3e2_add_timezone_to_datetime_columns.py
+│   │   └── c006e7ceed75_simplify_stock_movement_reasons_to_.py
 │   ├── env.py
 │   ├── README
 │   └── script.py.mako
@@ -128,12 +129,13 @@ The business logic in `services/` is kept separate from the HTTP layer in `route
 ## Key design decisions
 
 - **Atomic stock updates, no distributed lock needed.** Stock movements update `Product.current_stock` through a single conditional `UPDATE ... WHERE current_stock >= quantity` statement, computed entirely in SQL. A stock change is simple arithmetic on one row, so the database's own row-level locking is enough to guarantee correctness under concurrent requests — no Redis or external lock required. Verified with a dedicated test that fires two simultaneous stock-out requests against the same product and confirms exactly one succeeds.
-- **Domain exceptions, not raw database errors.** Business rule violations (insufficient stock, duplicate SKU or category name, missing resource) are raised as typed exceptions and translated into clean HTTP responses by a single table of exception handlers.
+- **Deletion checks before acting, rather than catching a database error.** `DELETE /categories/{id}` and `DELETE /products/{id}` explicitly query for dependent rows before deleting, instead of attempting the delete and catching the `IntegrityError` the database's `RESTRICT` foreign key would raise. The catch-and-rollback version was built first and reproduced a real `MissingGreenlet` failure inside the test suite's SAVEPOINT-based session isolation — a mid-test `rollback()` doesn't interact cleanly with the automatic savepoint restart. Checking first sidesteps that entirely, and matches the same pattern already used for duplicate SKU/category name checks.
+- **Domain exceptions, not raw database errors.** Business rule violations (insufficient stock, duplicate SKU or category name, missing resource, deleting a resource still in use) are raised as typed exceptions and translated into clean HTTP responses by a single table of exception handlers.
 - **Append-only movement history.** `StockMovement` records are never updated or deleted. Corrections are made via new, compensating entries, preserving a full audit trail.
 - **`DB_URL` stays local for day-to-day development.** `.env` defaults to a local PostgreSQL instance; the production `DB_URL` is only swapped in temporarily, to run a migration or create the production user, then reverted — so local experimentation never touches real business data.
 - **Authentication required everywhere** except `/auth/login` and `/auth/refresh` — appropriate for a single-user system handling real business data.
 - **Test isolation via SAVEPOINT rollback.** Each test runs inside its own savepoint on a shared connection, rolled back at teardown, so tests never leak data into each other, no matter how many commits the code under test performs.
-- **No rate limiting, pagination on categories, or token revocation yet** — deliberate scope decisions for a single-user system at this stage. See [Known limitations](#known-limitations--next-steps).
+- **No rate limiting or pagination on categories yet** — deliberate scope decisions for a single-user system at this stage. See [Known limitations](#known-limitations--next-steps).
 
 ---
 
@@ -210,9 +212,9 @@ Requires a separate local PostgreSQL database for tests (set `TEST_DB_URL` in `.
 pytest -v
 ```
 
-28 tests covering:
+34 tests covering:
 - **Auth**: login success/failure (including the same response for a wrong password and an unknown email, to avoid leaking which emails exist), refresh token issuance and validation
-- **Categories / Products**: full CRUD, auth enforcement, duplicate name/SKU rejection, missing-category validation
+- **Categories / Products**: full CRUD plus deletion, auth enforcement, duplicate name/SKU rejection, missing-category validation, deletion rejected (409) when a category still has products or a product still has stock movements
 - **Stock Movements**: entry/exit stock updates, insufficient-stock rejection, `created_by` sourced from the authenticated user rather than the request body, filtering by product, and a concurrency test firing two simultaneous stock-out requests against the same product to confirm exactly one succeeds
 - **Reports**: low-stock threshold, total stock value calculation
 
@@ -222,7 +224,7 @@ pytest -v
 
 - **API**: Docker container on [Render](https://render.com) (Frankfurt region), built directly from the repository's `Dockerfile`
 - **Database**: [Supabase](https://supabase.com) — managed PostgreSQL (Frankfurt region), accessed through the Session pooler for IPv4 compatibility with a persistent backend
-- **Frontend**: React, planned for [Vercel](https://vercel.com) — not yet built
+- **Frontend**: React, deployed separately — see [inventory-management-frontend](https://github.com/bertollimb/inventory-management-frontend)
 
 Both services run in the same region to minimize latency between them. Environment variables are configured directly on Render and are never baked into the Docker image — `.dockerignore` explicitly excludes `.env`, `venv/`, and other files that shouldn't ship inside the container.
 
@@ -233,7 +235,6 @@ Both services run in the same region to minimize latency between them. Environme
 - **Password recovery** — resetting the account password currently requires a manual database edit; no self-service or script-based flow yet
 - **Token revocation** — refresh tokens are stateless and not rotated on use, so a leaked refresh token can't be invalidated before it expires
 - **No pagination on categories** — `GET /categories` returns the full list; fine at the current data volume, unlike `/products` and `/movements`, which are already paginated
-- **No DELETE endpoints** — categories and products can't be deleted via the API yet (the database's `RESTRICT` foreign keys already prevent deleting one that's in use, but there's no path for retiring one that isn't)
 - **`is_active` on User has no real effect in a single-user system** — deactivating the only account would lock out the only person who can use it; the field made more sense when multiple users were still a possibility
 - **No login rate limiting** — acceptable without a cache/lock layer in the current stack, but would need Redis (or similar) added if abuse ever became a concern
 
