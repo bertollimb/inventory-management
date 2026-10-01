@@ -26,6 +26,16 @@ class DuplicateCategoryError(Exception):
     pass
 
 
+class CategoryInUseError(Exception):
+    """Raised when deleting a category that still has products linked to it."""
+    pass
+
+
+class ProductInUseError(Exception):
+    """Raised when deleting a product that already has stock movements."""
+    pass
+
+
 class InvalidCredentialsError(Exception):
     """Raised when login email/password do not match a valid user."""
     pass

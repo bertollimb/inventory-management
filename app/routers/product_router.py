@@ -41,3 +41,8 @@ async def get_product(product_id: int, db: AsyncSession = Depends(get_db)):
 @router.patch("/{product_id}", response_model=ProductRead)
 async def update_product(product_id: int, data: ProductUpdate, db: AsyncSession = Depends(get_db)):
     return await product_service.update_product(db, product_id, data)
+
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product(product_id: int, db: AsyncSession = Depends(get_db)):
+    await product_service.delete_product(db, product_id)
