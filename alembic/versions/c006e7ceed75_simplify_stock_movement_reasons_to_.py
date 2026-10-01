@@ -1,8 +1,8 @@
 """simplify stock movement reasons to purchase and use
 
-Revision ID: <mantenha o que foi gerado>
+Revision ID: c006e7ceed75
 Revises: a50d2df2c3e2
-Create Date: <mantenha o que foi gerado>
+Create Date: 2026-10-01
 
 """
 from typing import Sequence, Union
@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "<mantenha o que foi gerado>"
+revision: str = "c006e7ceed75"
 down_revision: Union[str, Sequence[str], None] = "a50d2df2c3e2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
