@@ -29,9 +29,7 @@ class MovementReason(str, enum.Enum):
     """Business reason behind a stock movement."""
 
     PURCHASE = "PURCHASE"
-    SALE = "SALE"
-    ADJUSTMENT = "ADJUSTMENT"
-    RETURN = "RETURN"
+    USE = "USE"
 
 
 class StockMovement(Base):

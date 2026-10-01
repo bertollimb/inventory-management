@@ -48,7 +48,7 @@ async def test_create_out_movement_decreases_stock(client: AsyncClient, test_pro
     )
     response = await client.post(
         "/movements",
-        json={"product_id": test_product.id, "movement_type": "OUT", "quantity": 5, "reason": "SALE"},
+        json={"product_id": test_product.id, "movement_type": "OUT", "quantity": 5, "reason": "USE"},
     )
     assert response.status_code == 201
 
@@ -60,7 +60,7 @@ async def test_out_movement_insufficient_stock_returns_409(client: AsyncClient, 
     # test_product starts with current_stock=0
     response = await client.post(
         "/movements",
-        json={"product_id": test_product.id, "movement_type": "OUT", "quantity": 1, "reason": "SALE"},
+        json={"product_id": test_product.id, "movement_type": "OUT", "quantity": 1, "reason": "USE"},
     )
     assert response.status_code == 409
 
@@ -132,7 +132,7 @@ async def test_concurrent_out_movements_do_not_corrupt_stock(engine: AsyncEngine
         async def do_out_movement():
             async with session_factory() as session:
                 data = StockMovementCreate(
-                    product_id=product_id, movement_type="OUT", quantity=7, reason="SALE"
+                    product_id=product_id, movement_type="OUT", quantity=7, reason="USE"
                 )
                 return await stock_movement_service.create_movement(session, data, created_by=user_id)
 
